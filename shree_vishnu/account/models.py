@@ -103,7 +103,8 @@ class Timesheet_db(models.Model):
     projet_id = models.ForeignKey(Project_db, on_delete=models.CASCADE)
     parts_id =  models.ForeignKey(Parts_db, on_delete=models.CASCADE)
     task_id =  models.ForeignKey(Task_db, on_delete=models.CASCADE)
-    time_spent =  models.CharField(max_length=200,default=False)
-    check_in = models.DateTimeField(auto_now_add=True)
-    check_out = models.DateTimeField( null=True,blank=True)
-
+    hours_for_the_day =  models.CharField(max_length=200,default=False)
+    check_in =models.BooleanField(default=False)
+    check_in_time = models.DateTimeField(blank=True, null=True)
+    check_out = models.BooleanField(default=False)
+    check_out_time = models.DateTimeField(blank=True, null=True)
