@@ -8,27 +8,32 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from account.models import *
 from datetime import datetime
 from django.http import JsonResponse
-
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
-
-def get_tokens_for_user(user):
-    refresh = RefreshToken.for_user(user)
-
-    return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
-    }
-
+# @api_view(["POST"])
+# @permission_classes([AllowAny])
 class UserRegistrationView(APIView):
-    def post(self, request, format=None):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user = serializer.save()
-            return Response({'msg':'Registration Success'}, status=status.HTTP_201_CREATED)
+    def post(self,request):
+        try:
+            data = []
+            serializer = UserRegistrationSerializer(data=request.data)
+            if serializer.is_valid():
+                account = serializer.save()
+                account.is_active = True
+                account.save()
+                token = Token.objects.get_or_create(user=account)[0].key
+                response_data={"msg":"register Success","token":token}
+                return Response(response_data,status=status.HTTP_201_CREATED)
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            account=User.objects.get(username='')
+            account.delete()
+            raise Exception({"400": f'{str(e)}'})
         
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -46,50 +51,32 @@ class UserLoginView(APIView):
                         j.is_active=True
                         j.save()
                         user = authenticate(username=username, password=password)
-                        token = get_tokens_for_user(j)
-
+                        # token = get_tokens_for_user(j)
+                        token = Token.objects.get_or_create(user=user)[0].key
                         if user is not None:
                             return Response({'token':token,'msg':'Login Success','username':username}, status=status.HTTP_200_OK)
                         else:
-                            print("&&&&&&&&&&&")
                             return Response({'non_field_errors':'name or password is not valid'}, status=status.HTTP_404_NOT_FOUND)
         except:
-            print("Something else went wrong")
+            return Response("Something else went wrong")
 
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
 
 class UserLogoutView(APIView):
-    def post(self, request, format=None):
-        serializer = UserlogoutSerializer(data=request.data)
-        obj =  User.objects.all()
-        for i in obj:
-            print(i.username)
-            if serializer.is_valid(raise_exception=True):
-                user = serializer.data.get('username')
-                
-                if i.username in user:
-
-                    print(i,'~~~~~~~~~~>user')
-                    i.is_active=False
-
-
-                    i.save()
-                    return Response({"msg":"log out"})
-
-            else:
-                return Response({'errors':{'non_field_errors':['name or password is not valid']}}, status=status.HTTP_404_NOT_FOUND)
-            
-        return Response(status=status.HTTP_200_OK)
-
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
+    def get(self, request, format=None):
+        request.user.auth_token.delete()
+        logout(request)
+        return Response('User Logged out successfully')
+      
 
 class ProjectView(APIView):
     def get(self,request, format=None):
         serializer = ProjectSerializer(data=request.data)
         obj=Project_db.objects.all()
         user = request.user
-        # print(user,'~~~~~~~~~~~')
         for i in obj:
             for j in  i.emp.all():
                 if j == user:
@@ -138,6 +125,26 @@ class TaskView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+class Get_All_User(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
+    def post(self,request):
+        check_in=request.data.get('check_in')
+        check_out=request.data.get('check_out')
+        if request.user.is_authenticated:
+            print(request.user)
+            # "check_in":"21-02-2021 18:46:00",
+            # "check_out":"23-02-2021 18:46:00"
+        
+        check_in = datetime.strptime(check_in, "%d-%m-%Y %H:%M:%S")
+        check_out = datetime.strptime(check_out, "%d-%m-%Y %H:%M:%S")
+
+        hours_difference = abs(check_out - check_in).total_seconds() / 3600.0
+        
+        return Response("DONE")
+
+
+
 class TimesheetView(APIView):
 
     def post(self, request, format=None):
@@ -175,25 +182,6 @@ class TimesheetView(APIView):
             'punch_out':check_out
             
         }
-        
-        # for data in obj2:
-        #     data.emp_id = user_id
-        #     data.projet_id = project_id
-        #     data.parts_id = task_id
-        # Timesheet_db(emp_id=user_id,projet_id=project_obj,parts_id=parts_id,task_id=task_obj,time_spent=time_spent,check_in=check_in,check_out=check_out).save()
-
-        # for i in obj:
-        #     if i in user_id:
-
-        #         print(i.id)
-        # for j in obj:
-        #     if j.is_active:
-
-        #         print('i am',j.username)
-        # serializer = TimesheetSerializer(data=request.data)
-        # if serializer.is_valid(raise_exception=True):
-        #     data = serializer.save()
-        #     return Response({'msg':'Parts deatails add'}, status=status.HTTP_201_CREATED)
         
         
         return Response( {'msg':'data added succusfully'}  ,status=status.HTTP_201_CREATED)
