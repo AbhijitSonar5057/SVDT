@@ -60,7 +60,8 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TimesheetSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
         model = Timesheet_db
-        fields = '__all__'
+        # fields=['check_in_time','check_out_time']
+        fields = ['emp_id','projet_id','parts_id','task_id','hours_for_the_day','check_in','check_out',]

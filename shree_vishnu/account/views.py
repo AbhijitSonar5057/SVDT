@@ -12,9 +12,11 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
-# @api_view(["POST"])
-# @permission_classes([AllowAny])
+
 class UserRegistrationView(APIView):
+    """ 
+        Register User....
+    """
     serializer_class = UserRegistrationSerializer
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
@@ -27,8 +29,12 @@ class UserRegistrationView(APIView):
             token = Token.objects.get_or_create(user=user)[0].key
             # resfresh = RefreshToken.for_user(user)
             # response_data = {'refresh':str(resfresh),'access':str(resfresh.access_token), "token": AuthToken.objects.create(user)[1]}
-            response_data={"msg":"register Success","token":token}
-            return Response(response_data,status=status.HTTP_201_CREATED)
+            response={
+                    'token':token,
+                    'msg':'User Registered Successfully',
+                    'status':True
+                }
+            return Response(response,status=status.HTTP_201_CREATED)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         
         
@@ -37,6 +43,9 @@ class UserRegistrationView(APIView):
 
 
 class UserLoginView(APIView):
+    """ 
+        Login User....
+    """
     def post(self, request, format=None):
         obj =  User.objects.all()
         # for j in obj:
@@ -53,8 +62,12 @@ class UserLoginView(APIView):
                     # token = get_tokens_for_user(j)
                     token = Token.objects.get_or_create(user=user)[0].key
                     if user :
-                        
-                        return Response({'token':token,'msg':'Login Success'}, status=status.HTTP_200_OK)
+                        response={
+                                'token':token,
+                                'msg':'Login Success',
+                                'status':True
+                            }
+                        return Response(response, status=status.HTTP_200_OK)
                     
                     else:
                         return Response({'errors':{'non_field_errors':['name or password is not valid']}}, status=status.HTTP_404_NOT_FOUND)
@@ -62,20 +75,20 @@ class UserLoginView(APIView):
                 # Response("Something went wrong",status=status.HTTP_400_BAD_REQUEST)
 
                 Response("Add valid Username",status=status.HTTP_204_NO_CONTENT)
-
-            
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLogoutView(APIView):
     authentication_classes=[TokenAuthentication]
     permission_classes=[IsAuthenticated]
-    def get(self, request, format=None):
+    def post(self, request, format=None):
         request.user.auth_token.delete()
         logout(request)
         return Response('User Logged out successfully')
       
 
 class ProjectView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
     def get(self,request, format=None):
         serializer = ProjectSerializer(data=request.data)
         obj=Project_db.objects.all()
@@ -90,42 +103,50 @@ class ProjectView(APIView):
     def post(self, request, format=None):
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            data = serializer.save()
-            return Response({'msg':'Projects deatails add'}, status=status.HTTP_201_CREATED)
+            # serializer.save()
+            response={
+                'msg':'Projects deatails add',
+                 'data':serializer.data,
+                'status':True
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class PartsView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
     def post(self, request, format=None):
         serializer = PartSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            data = serializer.save()
-            return Response({'msg':'Parts deatails add'}, status=status.HTTP_201_CREATED)
+            serializer.save()
+            response={
+                'msg':'Parts deatails add',
+                'data':serializer.data,
+                'status':True
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TaskView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
     def post(self, request, format=None):
+       
         serializer = TaskSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             data = serializer.save()
-            return Response({'msg':'Parts deatails add'}, status=status.HTTP_201_CREATED)
-        
-        
+            response={
+                'msg':'Task assigned successfully',
+                'data':serializer.data,
+                'status':True
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
-class TaskView(APIView):
-    def post(self, request, format=None):
-        serializer = TaskSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            data = serializer.save()
-            return Response({'msg':'Parts deatails add'}, status=status.HTTP_201_CREATED)
-        
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class Get_All_User(APIView):
@@ -146,105 +167,109 @@ class Get_All_User(APIView):
         
         return Response("DONE")
 
-
-
 class TimesheetView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
     
-    def post(self, request, format=None):
-        check_in =  request.data.get("check_in")
-        check_out =  request.data.get("check_out")
-        user = request.user
-        time_spent = ""
-        user_id=User.objects.get(id=user.id)
-        obj=Project_db.objects.all()
-        obj1 = Task_db.objects.all()
-        obj2 = Timesheet_db.objects.all()  
-        for i in obj:
-            for j in  i.emp.all():
-                if user == j:
-                    project_id = (i.id)
-                    project_obj = Project_db.objects.get(id=project_id)
-        for i in obj1:
-            # print(i.emp_id)
-            if i.emp_id == user:
-                parts_id = i.parts_id
-                task_id = i.id
-                task_obj = Task_db.objects.get(id =task_id )
-                print(task_obj)
-                
-        if check_out:
-            print("check_out",check_out)
-            timeobj = Timesheet_db.objects.all()
-            for i in timeobj:
-                if user_id == i.emp_id:
-                    d = i.check_in
-                    datetime_str = str(d)
-                    old_format = '%Y-%m-%d %H:%M:%S'
-                    new_format = '%d-%m-%Y %H:%M:%S'
-                    new_datetime_str = datetime.strptime(datetime_str, old_format).strftime(new_format)
-                    checkout_datetime_str = datetime.strptime(check_out, old_format).strftime(new_format)
-                    check_in_str = datetime.strptime(new_datetime_str, "%d-%m-%Y %H:%M:%S")
-                    check_out_str = datetime.strptime(checkout_datetime_str, "%d-%m-%Y %H:%M:%S")
-                    hours_difference = abs(check_out_str -check_in_str).total_seconds() / 3600.0
-                    print(hours_difference,'gjhgjgjhgjhgg')
-                    if hours_difference >= 9:
-                        print(" i am 9")
-                        i.check_out = check_out
-                        i.time_spent = hours_difference
-                        i.save()  
-                        return Response ( {'msg':f'{user} Your check out  '}  ,status=status.HTTP_201_CREATED)
-                    else:
-                        print("i am esle")
-                        return Response ( {'msg':f'{user} Your check out time is not done '}  ,status=status.HTTP_201_CREATED)
-            print("i am check_out")
-
-        if check_in:
-            print(" i am in check_in")
-            for i in obj2:
-                # print(" i am in check_in 1qqqqqqqqq", i.emp_id)
-                print("i am else for if ",user_id,i.emp_id)
-
-                user_emp =  i.emp_id
-                if user_id not in user_emp:
-                    pass
-                    # print("i am else for if ",user_id,i.emp_id)
-                    # Timesheet_db(emp_id=user_id,projet_id=project_obj,parts_id=parts_id,task_id=task_obj,time_spent=time_spent,check_in=check_in,check_out=check_out).save()
-
-                if user_id == i.emp_id:
-                    # print(" i am check value 1" , user_id,i.emp_id)
-
-                    if i.check_in != None:
-                        i.check_in = check_in
-                        i.save()
-                        # print(" i am check value")
-                    else:
-                        # print("i am mahesh esle")
-                        # i.emp_id = user_id
-                        # i.projet_id = project_obj
-                        # i.parts_id = parts_id
-                        # i.task_id =task_obj
-                        # i.time_spent = time_spent
-                        i.check_in = check_in
-                        # i.check_out = check_out
-                        i.save()
-                        # Timesheet_db(emp_id=user_id,projet_id=project_obj,parts_id=parts_id,task_id=task_obj,time_spent=time_spent,check_in=check_in,check_out=check_out).save()
-                # if user_id != i.emp_id:
-                #     print("i am else for if ")
-                #     Timesheet_db(emp_id=user_id,projet_id=project_obj,parts_id=parts_id,task_id=task_obj,time_spent=time_spent,check_in=check_in,check_out=check_out).save()
-                # break
-        # for i in obj:
-
-        #     if i in user_id:
-
-        #         print(i.id)
-        # for j in obj:
-        #     if j.is_active:
-
-        #         print('i am',j.username)
-        # serializer = TimesheetSerializer(data=request.data)
-        # if serializer.is_valid(raise_exception=True):
-        #     data = serializer.save()
-        #     return Response({'msg':'Parts deatails add'}, status=status.HTTP_201_CREATED)
+    def post(self,request):
+        try:
+            #get current user
+            current_user=request.user.id
+            check_in_time=request.data.get('check_in')
+            check_out_time=request.data.get('check_out')
+            
+            #convert check-in check-out in str to datetime object
+            if check_in_time:
+                check_in_str = datetime.strptime(str(check_in_time), "%Y-%m-%d %H:%M:%S")
+            if check_out_time:
+                check_out_str = datetime.strptime(str(check_out_time), "%Y-%m-%d %H:%M:%S")
+        
+            if check_in_time and not check_out_time:
+                try:
+                    time_sheet_obj=Timesheet_db.objects.get(check_in_time__contains=check_in_str.date())
+                    if time_sheet_obj:
+                        response={
+                        'msg':'You Have Already Check In....',
+                        'status':True
+                    }
+                    return Response(response)
+                except:
+                    time_sheet=Timesheet_db(check_in_time=check_in_time)
+            if check_out_time: 
+                try:
+                    time_sheet=Timesheet_db.objects.get(check_in_time__contains=check_out_str.date())
+                    if time_sheet:
+                        #hours_for_the_day  
+                        check_in_str = datetime.strptime(str(time_sheet.check_in_time)[:19], "%Y-%m-%d %H:%M:%S")
+                        hours_difference = abs(check_in_str - check_out_str).total_seconds() / 3600.0
+                        if int(hours_difference) < 9:
+                            response={
+                                'msg':'Please Complete Your working Hour  ....',
+                                'status':False
+                            }
+                            return Response(response,status=status.HTTP_400_BAD_REQUEST)
+                        time_sheet.check_out_time=check_out_time
+                        time_sheet.hours_for_the_day=hours_difference
+                except Exception:
+                    response={
+                        'msg':'Please Check In....',
+                        'status':True
+                    }
+                    return Response(response,status=status.HTTP_400_BAD_REQUEST)
+            time_sheet.save()
+            time_sheet_obj=Timesheet_db.objects.get(id=time_sheet.id)
+            # #add user
+            user_obj=User.objects.get(id=current_user)
+            if user_obj:
+                time_sheet_obj.emp_id=user_obj
+            
+            # #add project data of employee
+            project_obj=Project_db.objects.filter(emp__id=user_obj.id)
+            if project_obj:
+                for i in project_obj:
+                    pr_obj=Project_db.objects.get(id=i.id)
+                    if pr_obj:
+                        time_sheet_obj.projet_id.add(pr_obj.id)
+            #add parts data of employee
+            parts_obj=Parts_db.objects.filter(emp_id__id=user_obj.id)
+            if parts_obj:
+                for i in parts_obj:
+                    part_obj=Parts_db.objects.get(id=i.id)
+                    if part_obj:
+                        time_sheet_obj.parts_id.add(part_obj.id)
+            # add task data of employee
+            tasks_obj=Task_db.objects.filter(emp_id__id=user_obj.id)
+            if task_obj:
+                for i in tasks_obj:
+                    task_obj=Task_db.objects.get(id=i.id)
+                    if task_obj:
+                        time_sheet_obj.task_id.add(task_obj.id)
+            time_sheet_obj.save()
+        
+            response={
+                'msg':"Timesheet added Sucessfully",
+                'status':True
+            }
+            return Response(response, status=status.HTTP_200_OK)
+        except Exception as e:
+            response={
+                'msg':"Something went wrong",
+                'status':False
+            } 
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
         
         
-        return Response( {'msg':f'{user} Check_in'}  ,status=status.HTTP_201_CREATED)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        #   obj2 = Timesheet_db.objects.filter()
+        
+        
+    

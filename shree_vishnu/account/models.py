@@ -53,7 +53,7 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = ['email']
 
     def __str__(self):
-        return self.username
+        return str(self.id)
 
     def has_perm(self, perm, obj=None):
         "Does the user have a specific permission?"
@@ -74,37 +74,42 @@ class User(AbstractBaseUser):
 
 class Project_db(models.Model):
     emp = models.ManyToManyField(User)
-    id = models.IntegerField(primary_key = True, auto_created=True)
     project_name =  models.CharField(max_length=200,default=False)
     project_pricing =  models.CharField(max_length=200,default=False)
     inventory =  models.CharField(max_length=200,default=False)
     working_status =  models.CharField(max_length=200,default=False)
     project_description  = models.CharField(max_length=200,default=False)
-
+    def __str__(self):
+        return str(self.id)
 
 class Parts_db(models.Model):
-    id = models.IntegerField(primary_key = True)
+    emp_id = models.ForeignKey(User, on_delete=models.CASCADE,blank=True, null=True)
     part_name = models.CharField(max_length=200,default=False)
     projet_id = models.ForeignKey(Project_db, on_delete=models.CASCADE)
-
+    def __str__(self):
+        return str(self.id)
 
 class Task_db(models.Model):
-    id = models.IntegerField(primary_key = True)
+   
     emp_id = models.ForeignKey(User, on_delete=models.CASCADE)
     projet_id = models.ForeignKey(Project_db, on_delete=models.CASCADE)
     parts_id =  models.ForeignKey(Parts_db, on_delete=models.CASCADE)
     parts_quantity = models.IntegerField(max_length=200,default=False)
     opretions = models.CharField(max_length=200,default=False)
-
+    
+    def __str__(self):
+        return str(self.id)
  
 class Timesheet_db(models.Model):
     # id = models.IntegerField(primary_key = True)
-    emp_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    projet_id = models.ForeignKey(Project_db, on_delete=models.CASCADE)
-    parts_id =  models.ForeignKey(Parts_db, on_delete=models.CASCADE)
-    task_id =  models.ForeignKey(Task_db, on_delete=models.CASCADE)
+    emp_id = models.ForeignKey(User, on_delete=models.CASCADE,blank=True, null=True)
+    projet_id = models.ManyToManyField(Project_db, blank=True,null=True, default=None,related_name='project_id')
+    parts_id =  models.ManyToManyField(Parts_db, blank=True,null=True ,default=None,related_name='parts_db')
+    task_id =  models.ManyToManyField(Task_db, blank=True,null=True, default=None,related_name='task_db')
     hours_for_the_day =  models.CharField(max_length=200,default=False)
     check_in =models.BooleanField(default=False)
     check_in_time = models.DateTimeField(blank=True, null=True)
     check_out = models.BooleanField(default=False)
     check_out_time = models.DateTimeField(blank=True, null=True)
+    def __str__(self):
+        return str(self.id)
